@@ -6,7 +6,6 @@ Based on https://www.kaggle.com/code/saeedghamshadzai/person-segmentation-deepla
 import torch
 from torch import nn
 from tqdm import tqdm
-from metrics import DiceLossTorch
 import pandas as pd
 
 
@@ -41,25 +40,27 @@ def train_loop(train_data, model, loss_fn, optimizer):
     return global_loss
 
 
-def validation_loop(validation_data, model):
+def validation_loop(validation_data, model, loss_fn):
     """
-    Calculates the Dice for the validation data.
+    Calculates the loss for the validation data.
 
     Args:
         validation_data (DataLoader): Pytorch DataLoader containing the validation
             images and masks.
         model (nn.Module): Pytorch model to evaluate.
     Returns:
-        val_dice (float): Dice value of validation_data.
+        val_loss (float): Loss value of validation_data.
     """
-    val_dice = 0.0
-    for image, mask in validation_data:
-        val_dice += DiceLossTorch(image, mask)
+    val_loss = 0.0
+    for images, masks in validation_data:
+        outputs = model(images)
+        loss = loss_fn(outputs, masks)
+        val_loss += loss.item()
 
-    return val_dice
+    return val_loss / len(validation_data)
 
 
-def save_checkpoint(model_opt_state, file_name="checkpoint.pth"):
+def save_checkpoint(model_opt_state, file_name="checkpoint.pth.tar"):
     """
     Saves the model and optimizer states.
 
@@ -82,28 +83,29 @@ def load_checkpoint(filename, model, optimizer):
         model (nn.Module): Pytorch model.
         optimizer (torch.optim.Optimizer): Pytorch optimizer.
     """
-    checkpoint = torch.load(filename)
+    checkpoint = torch.load(filename, weights_only=True)
     model.load_state_dict(checkpoint["state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer"])
 
-def get_best_checkpoint(history, top_number = 5):
+def get_best_checkpoint(history, checkpoint_number=5):
     """
-    Get the best checkpoint (lowest training loss and top validation Dice).
+    Get the best checkpoint (lowest training loss and lowest validation loss).
 
     Args:
         history (pd.DataFrame): DataFrame containing the training history.
-        top_number (int): Number of top validation Dice to consider.
+        top_number (int): Number of top validation losses to consider.
+        checkpoint_number (int): Number of iterations from checkpoint to
+            checkpoint.
     
     Returns:
-        best (int): The best epoch number.
+        best (int): Index (0-based indexing) of the best epoch number.
     """
-    checkpoints = history.sort_values(by='val_dice', ascending=False).iloc[:top_number]
-    checkpoints.sort_values(by='train_loss', ascending=True, inplace=True)
-    best = checkpoints.index[0] + 1
-    return best
+    checkpoints = history.iloc[-1:len(history.index):checkpoint_number] # -1 so that checkpoint index is epoch_index - 1
+    checkpoints = checkpoints.sort_values(by=['val_loss', 'train_loss'], ascending=[True, True])
+    return checkpoints.index[0]
 
 
-def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, early_stop = 5): # REVISAR SI INTRODUCIR LEARNING RATE ADAPTATIVO
+def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoint_number = 5, early_stop = 5): # REVISAR SI INTRODUCIR LEARNING RATE ADAPTATIVO
     """
     Fit the model using the chosen loss and optimizer functions. Returns the best model
     obtained during training.
@@ -118,16 +120,16 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, early_st
         optimizer (torch.optim.Optimizer): Pytorch optimizer to use during training.
         epochs (int): Maximum number of epochs to consider.
         early_stop (int): Number of epochs from the last checkpoint to wait before early 
-        stopping the training if there is no improvement in validation Dice.
+        stopping the training if there is no improvement in validation loss.
 
     Returns:
         history (pd.DataFrame): DataFrame containing:
             - "train_loss" (list(float)): List of training losses per epoch.
-            - "val_dice" (list(float)): List of validation Dice per epoch.
+            - "val_loss" (list(float)): List of validation loss per epoch.
     """
     print("Starting the training...")
     train_loss = []
-    val_dice = []
+    val_loss = []
 
     counter = 0 # For early stopping
 
@@ -136,21 +138,25 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, early_st
         epoch_loss = train_loop(train_data, model, loss_fn, optimizer)
         epoch_loss = epoch_loss / len(train_data)
 
-        epoch_val_dice = validation_loop(validation_data, model)
+        epoch_val_loss = validation_loop(validation_data, model, loss_fn)
+
+        train_loss.append(epoch_loss)
+        val_loss.append(epoch_val_loss)
+        print(f"Epoch training loss: {epoch_loss}. Epoch validation loss: {epoch_val_loss}")
 
         # Checkpoint if improvement (checked each 5 epochs)
-        if epoch % 5 == 0:
-            if (all(i < epoch_val_dice for i in val_dice) or # REVISAR SI PONER OR O AND
-                all(i > epoch_loss for i in train_loss)):
+        if (epoch+1) % checkpoint_number == 0:
+            if (all(i >= epoch_loss for i in train_loss) or # REVISAR SI PONER OR O AND
+                all(i >= epoch_val_loss for i in val_loss)):
                 checkpoint = {
                     "state_dict": model.state_dict(),
                     "optimizer": optimizer.state_dict()
                 }
-                filename = f"Epoch-{epoch+1}_checkpoint.pth"
+                filename = f"Epoch-{epoch+1}_checkpoint.pth.tar"
                 save_checkpoint(checkpoint, file_name=filename)
 
         # Early stop
-        if (all(i < epoch_val_dice for i in val_dice)):
+        if (all(i >= epoch_val_loss for i in val_loss)):
             counter = 0
         elif counter > early_stop:
             print(f"No improvement in {early_stop} epochs. Stopping the trainig.")
@@ -158,17 +164,13 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, early_st
         else:
             counter += 1
 
-        train_loss.append(epoch_loss)
-        val_dice.append(epoch_val_dice)
-        print(f"Epoch training loss: {epoch_loss}. Epoch validation dice: {epoch_val_dice}")
-
     history = pd.DataFrame({
         "train_loss": train_loss,
-        "val_dice": val_dice
+        "val_loss": val_loss
     })
     
-    best = get_best_checkpoint(history)
-    load_checkpoint(filename=f"Epoch-{best}_checkpoint.pth", model=model, optimizer=optimizer)
+    best = get_best_checkpoint(history, checkpoint_number)+1
+    load_checkpoint(filename=f"Epoch-{best}_checkpoint.pth.tar", model=model, optimizer=optimizer)
 
     print("...Training done!")
     

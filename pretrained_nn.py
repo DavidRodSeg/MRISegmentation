@@ -5,7 +5,7 @@ import cv2
 import matplotlib.pyplot as plt
 import albumentations as A
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights, deeplabv3
 from torch import nn
 from torchinfo import summary
@@ -142,9 +142,11 @@ train_df, val_df = torch.utils.data.random_split(trainval_df, [train_size, val_s
 #     img_mask_plot(i, val_df)
 
 #################### DATALOADER CREATION   ####################
-batch_size = 32
-trainloader = DataLoader(train_df, batch_size=batch_size, shuffle=True)
-valloader = DataLoader(val_df, batch_size=batch_size, shuffle=True)
+batch_size = 2
+train_subset = Subset(train_df, range(6))
+val_subset = Subset(val_df, range(6))
+trainloader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
+valloader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
 
 
 #################### PRETRAINED MODEL   ####################
@@ -177,32 +179,11 @@ model = Pretrained_Model()
 
 #################### MODEL TRAINING   ####################
 # Hyperparameters
-epochs = 5
+epochs = 6
 learning_rate = 1e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 loss = DiceLossTorch()
-
-# def fit(train_data, model, loss_fn, optimizer, epochs):
-#     model.train()
-#     for epoch in range(epochs):
-#         epoch_loss = 0.0
-#         train_bar = tqdm(train_data, desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
-#         for images, masks in train_bar:
-#             optimizer.zero_grad()
-#             outputs = model(images)
-#             loss = loss_fn(outputs, masks)
-#             loss.backward()
-#             optimizer.step()
-
-#             epoch_loss += loss.item() # REVISAR EN FUNCIÓN DE LA FUNCIÓN DE ERROR UTILIZADA
-#             train_bar.set_postfix(loss=loss.item())
-#         print(f"Epoch {epoch+1} Loss: {epoch_loss/len(train_data)}")
-
-#     return epoch_loss
-
-fit(train_data=trainloader, validation_data=valloader,
-     model=model, loss_fn=loss, optimizer=optimizer, 
-     epochs=epochs)
+fit(train_data=trainloader, validation_data=valloader, model=model, loss_fn=loss, optimizer=optimizer, epochs=epochs, checkpoint_number=3)
 
 torch.save(model.state_dict(), "model_weights.pth")
 
