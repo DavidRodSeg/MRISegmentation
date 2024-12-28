@@ -9,7 +9,7 @@ from tqdm import tqdm
 import pandas as pd
 
 
-def train_loop(train_data, model, loss_fn, optimizer):
+def train_loop(train_data, model, loss_fn, optimizer, device):
     """
     Mini-batch training of the model.
 
@@ -25,9 +25,14 @@ def train_loop(train_data, model, loss_fn, optimizer):
         global_loss (float): Total loss for the batches in train_data.
     """
     model.train()
+
     global_loss = 0.0
     train_bar = tqdm(train_data)
+
     for images, masks in train_bar:
+        images = images.to(device)
+        masks = masks.to(device)
+
         optimizer.zero_grad()
         outputs = model(images)
         loss = loss_fn(outputs, masks)
@@ -40,7 +45,7 @@ def train_loop(train_data, model, loss_fn, optimizer):
     return global_loss
 
 
-def validation_loop(validation_data, model, loss_fn):
+def validation_loop(validation_data, model, loss_fn, device):
     """
     Calculates the loss for the validation data.
 
@@ -53,6 +58,8 @@ def validation_loop(validation_data, model, loss_fn):
     """
     val_loss = 0.0
     for images, masks in validation_data:
+        images = images.to(device)
+        masks = masks.to(device)
         outputs = model(images)
         loss = loss_fn(outputs, masks)
         val_loss += loss.item()
@@ -105,7 +112,8 @@ def get_best_checkpoint(history, checkpoint_number=5):
     return checkpoints.index[0]
 
 
-def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoint_number = 5, early_stop = 5): # REVISAR SI INTRODUCIR LEARNING RATE ADAPTATIVO
+def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoint_number = 5, early_stop = 5, device="cpu",
+        load_best=False): # REVISAR SI INTRODUCIR LEARNING RATE ADAPTATIVO
     """
     Fit the model using the chosen loss and optimizer functions. Returns the best model
     obtained during training.
@@ -130,15 +138,14 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoi
     print("Starting the training...")
     train_loss = []
     val_loss = []
-
     counter = 0 # For early stopping
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch + 1}/{epochs}",)
-        epoch_loss = train_loop(train_data, model, loss_fn, optimizer)
+        epoch_loss = train_loop(train_data, model, loss_fn, optimizer, device)
         epoch_loss = epoch_loss / len(train_data)
 
-        epoch_val_loss = validation_loop(validation_data, model, loss_fn)
+        epoch_val_loss = validation_loop(validation_data, model, loss_fn, device)
 
         train_loss.append(epoch_loss)
         val_loss.append(epoch_val_loss)
@@ -149,14 +156,14 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoi
             if (all(i >= epoch_loss for i in train_loss) or # REVISAR SI PONER OR O AND
                 all(i >= epoch_val_loss for i in val_loss)):
                 checkpoint = {
-                    "state_dict": model.state_dict(),
+                    "model": model.state_dict(),
                     "optimizer": optimizer.state_dict()
                 }
                 filename = f"Epoch-{epoch+1}_checkpoint.pth.tar"
                 save_checkpoint(checkpoint, file_name=filename)
 
         # Early stop
-        if (all(i >= epoch_val_loss for i in val_loss)):
+        if (all(i >= epoch_val_loss for i in val_loss)): # PUEDE SER MÁS EFICIENTE ALMACENAR EL VALOR CON MENOR ERROR, ASÍ NO HACE FALTA COMPROBAR EN CADA ITERACIÓN
             counter = 0
         elif counter > early_stop:
             print(f"No improvement in {early_stop} epochs. Stopping the trainig.")
@@ -164,13 +171,22 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoi
         else:
             counter += 1
 
+        # Varying learning rate
+        if epoch_val_loss < 0.1 and epoch_val_loss > 0.05:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] *= 0.5
+        elif epoch_val_loss < 0.05:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] *= 0.1
+
     history = pd.DataFrame({
         "train_loss": train_loss,
         "val_loss": val_loss
     })
     
-    best = get_best_checkpoint(history, checkpoint_number)+1
-    load_checkpoint(filename=f"Epoch-{best}_checkpoint.pth.tar", model=model, optimizer=optimizer)
+    if load_best:
+        best = get_best_checkpoint(history, checkpoint_number)+1
+        load_checkpoint(filename=f"Epoch-{best}_checkpoint.pth.tar", model=model, optimizer=optimizer)
 
     print("...Training done!")
     

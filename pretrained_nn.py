@@ -8,10 +8,11 @@ import torch
 from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights, deeplabv3
 from torch import nn
-from torchinfo import summary
 from tqdm import tqdm
 from metrics import DiceLossTorch
 from training_functions import fit
+from plot_functions import img_mask_plot, plot_original_mask_pred, plot_loss
+
 
 #################### GLOBAL CONSTANTS AND PATHS ####################
 def set_seed(seed):
@@ -115,20 +116,6 @@ trainval_df = SegmentationDataset(train_flair_path, train_masks_path, transform=
 test_df = SegmentationDataset(test_flair_path, test_masks_path)
 
 #################### DATA SET VISUALIZATION   ####################
-def img_mask_plot(index, dataset):
-    img, mask = dataset[index]
-
-    plt.subplot(1,2,1)
-    plt.imshow(np.transpose(img, (1,2,0)))
-    plt.axis('off')
-    plt.title("Image")
-
-    plt.subplot(1,2,2)
-    plt.imshow(np.transpose(mask, (1,2,0)))
-    plt.axis('off')
-    plt.title("Mask")
-    plt.show()
-
 # for i in np.random.randint(0, len(trainval_df), 5):
 #     img_mask_plot(i, trainval_df)
 
@@ -142,11 +129,11 @@ train_df, val_df = torch.utils.data.random_split(trainval_df, [train_size, val_s
 #     img_mask_plot(i, val_df)
 
 #################### DATALOADER CREATION   ####################
-batch_size = 2
-train_subset = Subset(train_df, range(6))
-val_subset = Subset(val_df, range(6))
-trainloader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
-valloader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
+batch_size = 32
+# train_subset = Subset(train_df, range(6))
+# val_subset = Subset(train_df, range(6))
+trainloader = DataLoader(train_df, batch_size=batch_size, shuffle=True)
+valloader = DataLoader(val_df, batch_size=batch_size, shuffle=True)
 
 
 #################### PRETRAINED MODEL   ####################
@@ -175,32 +162,22 @@ class Pretrained_Model(nn.Module):
         return output
     
 model = Pretrained_Model()
-
+device = "cpu" #'cuda' if torch.cuda.is_available() else 'cpu'
+model.to(device)
+# model.load_state_dict(torch.load("Epoch-15_checkpoint.pth.tar", weights_only=True)["state_dict"])
 
 #################### MODEL TRAINING   ####################
 # Hyperparameters
-epochs = 6
+epochs = 5
 learning_rate = 1e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 loss = DiceLossTorch()
-fit(train_data=trainloader, validation_data=valloader, model=model, loss_fn=loss, optimizer=optimizer, epochs=epochs, checkpoint_number=3)
+history = fit(train_data=trainloader, validation_data=valloader, model=model, loss_fn=loss, optimizer=optimizer,
+               epochs=epochs, device=device)
+plot_loss(history)
 
-torch.save(model.state_dict(), "model_weights.pth")
-
-# model = Pretrained_Model()
-# model.load_state_dict(torch.load("model_weights.pth", weights_only=True))
+# model.load_state_dict(torch.load("Epoch-15_checkpoint.pth.tar", weights_only=True)["state_dict"])
 model.eval()
 
-def plot_original_mask_pred(index, dataset):
-    prediction = model(dataset[index][0].unsqueeze(0))
-    binary_mask = (prediction > 0.5).float()
-    plt.subplot(1,3,1)
-    plt.imshow(dataset[index][0].squeeze(0))
-    plt.subplot(1,3,2)
-    plt.imshow(dataset[index][1].squeeze(0), cmap='gray')
-    plt.subplot(1,3,3)
-    plt.imshow(binary_mask.squeeze(), cmap='gray')
-    plt.show()
-
 for i in np.random.randint(0, len(val_df), 5):
-    plot_original_mask_pred(index=i, dataset=test_df)
+    plot_original_mask_pred(index=i, dataset=test_df, model=model)
