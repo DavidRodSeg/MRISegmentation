@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from tqdm import tqdm
 import pandas as pd
+from metrics import metrics
 
 
 def train_loop(train_data, model, loss_fn, optimizer, device):
@@ -57,6 +58,7 @@ def validation_loop(validation_data, model, loss_fn, device):
         val_loss (float): Loss value of validation_data.
     """
     val_loss = 0.0
+
     for images, masks in validation_data:
         images = images.to(device)
         masks = masks.to(device)
@@ -64,7 +66,38 @@ def validation_loop(validation_data, model, loss_fn, device):
         loss = loss_fn(outputs, masks)
         val_loss += loss.item()
 
-    return val_loss / len(validation_data)
+    val_loss = val_loss / len(validation_data)
+    return val_loss
+
+
+def metrics_loop(validation_data, model, loss_fn, device):
+    """
+    Calculates the metrics for the validation data.
+
+    Args:
+        validation_data (DataLoader): Pytorch DataLoader containing the validation
+            images and masks.
+        model (nn.Module): Pytorch model to evaluate.
+    Returns:
+        val_metrics (list(float)): List of metrics for validation data.
+        val_loss (float): Loss of the validation data.
+    """
+    val_loss = 0.0
+    val_metrics = [0, 0, 0, 0]
+
+    for images, masks in validation_data:
+        images = images.to(device)
+        masks = masks.to(device)
+        outputs = model(images)
+        
+        temp_metrics = metrics(masks, outputs)
+        val_metrics = [val_metrics[i] + temp_metrics[i] / len(validation_data) for i in range(len(val_metrics))]
+
+        loss = loss_fn(outputs, masks)
+        val_loss += loss.item()
+
+    val_loss = val_loss / len(validation_data)
+    return val_loss, val_metrics
 
 
 def save_checkpoint(model_opt_state, file_name="checkpoint.pth.tar"):
@@ -187,6 +220,15 @@ def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoi
     if load_best:
         best = get_best_checkpoint(history, checkpoint_number)+1
         load_checkpoint(filename=f"Epoch-{best}_checkpoint.pth.tar", model=model, optimizer=optimizer)
+
+    best_val_loss, best_metrics = metrics_loop(validation_data, model, loss_fn, device)
+    print(f"""----------------Validation metrics----------------
+|  Accuracy: {round(best_metrics[2], 3)}          Precision: {round(best_metrics[0], 3)}     |
+--------------------------------------------------
+|  Recall: {round(best_metrics[1], 3)}            Dice: {round(1-best_val_loss, 3)}          |
+--------------------------------------------------
+|  IoU: {round(best_metrics[3], 3)}                                    |
+--------------------------------------------------""")
 
     print("...Training done!")
     

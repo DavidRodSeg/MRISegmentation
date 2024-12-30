@@ -24,7 +24,7 @@ def img_mask_plot(index, dataset):
     plt.show()
 
 
-def plot_original_mask_pred(index, dataset, model):
+def plot_original_mask_pred(index, dataset, model, save=False, name=None):
     """
     Plot image and original and predicted masks data side by side from a data set.
 
@@ -50,10 +50,13 @@ def plot_original_mask_pred(index, dataset, model):
     plt.imshow(binary_mask.squeeze(), cmap="gray")
     plt.axis("off")
     plt.title("Predicted mask")
+    if save:
+        if name != None:
+            plt.savefig(f"{index}_prediction_{name}.png")
     plt.show()
 
 
-def plot_loss(history):
+def plot_loss(history, save=False, name=None):
     """
     Plot training and validation loss history.
 
@@ -71,4 +74,7 @@ def plot_loss(history):
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend(["train", "test"], loc="upper right")
+    if save:
+        if name != None:
+            plt.savefig(f"loss_history_{name}.png")
     plt.show()
