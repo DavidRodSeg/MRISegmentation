@@ -2,7 +2,7 @@
 ## Objective
 
 The aim of the project was to achieved binary segmentation of brain tumoral MRI (magnetic resonance imaging) images. For that purpose two models were used: pretrained DeepLabV3 and AGResUNet. Both use a _encoder-decoder_ arquitecture
-and are fully convolutional networks. The quality of the models were measured using _dice_, _precision_, _recall_, _accuracy_ and _IoU_, typically use in this kind of problems. Pytorch was used as the deep learning framework.
+and are fully convolutional networks. The quality of the models were measured using _dice_, _precision_, _recall_, _accuracy_ and _IoU_, typically use in this kind of problems.
 
 ## Data set analysis
 
@@ -46,6 +46,33 @@ The AGResUNet model adds two additional elements to the structure:
 <i>Figure 2: AGResUNet model. From: Attention Gate ResU-Net for Automatic
 MRI Brain Tumor Segmentation. </i>
 </center>
+
+## How to use it
+### Dependencies
+
+The main libraries are:
+* Pytorch = 2.2.2
+* Numpy = 1.26.2
+
+Additional dependencies are listed in the file  _requirement.txt_
+
+### Training
+Run _training.py_ to start training the models and visualizing the results.
+
+### Results
+For 20 epochs the metrics obtained for both models are the following:
+
+| Models      | Accuracy | Precision | Recall | Dice  | IoU   |
+|-------------|----------|-----------|--------|-------|-------|
+| DeepLabV3   | 0.991    | 0.864     | 0.914  | 0.872 | 0.799 |
+| AGResUNet   | 0.995    | 0.937     | 0.937  | 0.916 | 0.881 |
+
+The results are specially satisfactory with AGResUNet. This is also shown in the following prediction:
+![Alt Text](https://drive.google.com/uc?id=1ov7QdWR2qVUy_JWLgu5evEMnN2qrZvPL)
+<center>
+<i>Figure 3: AGResUNet model prediction. </i>
+</center>
+
 
 ## References
 
