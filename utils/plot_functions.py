@@ -1,3 +1,7 @@
+"""
+Functions for plotting used during the training process.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 

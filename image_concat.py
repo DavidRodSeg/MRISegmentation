@@ -1,4 +1,7 @@
-import numpy as np
+"""
+File used for concatenating images into 4-channel images.
+"""
+
 import os
 import cv2
 
