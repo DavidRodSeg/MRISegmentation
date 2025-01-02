@@ -2,17 +2,15 @@ import os
 import random
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 import albumentations as A
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights, deeplabv3
-from torch import nn
-from tqdm import tqdm
+from torch.utils.data import Dataset, DataLoader, Subset
 from metrics import DiceLossTorch
 from unet_models import UNet, ResUNet, AGResUNet
 from training_functions import fit
 from plot_functions import img_mask_plot, plot_original_mask_pred, plot_loss
+
+
 
 #################### GLOBAL CONSTANTS AND PATHS ####################
 def set_seed(seed):
@@ -123,9 +121,10 @@ class SegmentationDataset(Dataset):
 trainval_df = SegmentationDataset(train_path, train_masks_path, transform=transform, in_ch=in_ch)
 test_df = SegmentationDataset(test_path, test_masks_path, in_ch=in_ch)
 
+
 #################### DATA SET VISUALIZATION   ####################
-# for i in np.random.randint(0, len(trainval_df), 5):
-#     img_mask_plot(i, trainval_df)
+for i in np.random.randint(0, len(trainval_df), 5):
+    img_mask_plot(i, trainval_df)
 
 
 #################### TRAIN-VALIDATION SPLIT ####################
@@ -133,33 +132,33 @@ train_size = int(0.8*len(trainval_df))
 val_size = len(trainval_df) - train_size
 train_df, val_df = torch.utils.data.random_split(trainval_df, [train_size, val_size])
 
-# for i in np.random.randint(0, len(val_df), 10):
-#     img_mask_plot(i, val_df)
 
 #################### DATALOADER CREATION   ####################
-batch_size = 32
-trainloader = DataLoader(train_df, batch_size=batch_size, shuffle=True)
-valloader = DataLoader(val_df, batch_size=batch_size, shuffle=True)
+batch_size = 8
+train_subset = Subset(train_df, range(10))
+val_subset = Subset(val_df, range(10))
+trainloader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
+valloader = DataLoader(val_subset, batch_size=batch_size, shuffle=True)
 
 
 #################### MODEL   ####################
 model = UNet(in_ch=in_ch)
-device = "cpu" #'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model.to(device)
+
 
 #################### MODEL TRAINING   ####################
 # Hyperparameters
-epochs = 1
+epochs = 2
 learning_rate = 1e-4
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5) # MIRAR SI FUNCIONA LA REGULARIZACIÓN
 loss = DiceLossTorch()
-# history = fit(train_data=trainloader, validation_data=valloader, model=model, loss_fn=loss, optimizer=optimizer,
-#                epochs=epochs, device=device)
-# plot_loss(history)
 
-# torch.save(model.state_dict(), "model.pth.tar")
-model.load_state_dict(torch.load("model.pth.tar", weights_only=True))
+history = fit(train_data=trainloader, validation_data=valloader, model=model, loss_fn=loss, optimizer=optimizer,
+               epochs=epochs, device=device)
+plot_loss(history)
+
+#################### MODEL TESTING   ####################
 model.eval()
-
 for i in np.random.randint(0, len(val_df), 10):
     plot_original_mask_pred(index=i, dataset=test_df, model=model)

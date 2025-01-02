@@ -1,28 +1,6 @@
 import numpy as np
-# import tensorflow as tf
 import torch
 
-# def dice_coefficient(y_true, y_pred, smooth=1):
-#     y_true_f = tf.keras.flatten(y_true)
-#     y_pred_f = tf.keras.flatten(y_pred)
-#     intersection = tf.keras.sum(y_true_f * y_pred_f)
-#     union = tf.keras.sum(y_true_f) + tf.keras.sum(y_pred_f)
-#     return (2. * intersection + smooth) / (union + smooth)
-
-# def dice_coefficient_numpy(y_true, y_pred, smooth=1):
-#     y_true_f = y_true.flatten()
-#     y_pred_f = y_pred.flatten()
-#     intersection = np.sum(y_true_f * y_pred_f)
-#     union = np.sum(y_true_f) + np.sum(y_pred_f)
-#     return (2. * intersection + smooth) / (union + smooth)
-
-# def jaccard_index(y_true, y_pred, smooth=100):
-#     """Calculates the Jaccard index (IoU), useful for evaluating the model's performance."""
-#     y_true_f = tf.reshape(tf.cast(y_true, tf.float32), [-1])  # Flatten and cast ground truth
-#     y_pred_f = tf.reshape(tf.cast(y_pred, tf.float32), [-1])  # Flatten and cast predictions
-#     intersection = tf.reduce_sum(y_true_f * y_pred_f)  # Compute intersection
-#     total = tf.reduce_sum(y_true_f) + tf.reduce_sum(y_pred_f) - intersection  # Total pixels
-#     return (intersection + smooth) / (total + smooth)
 
 class DiceLossTorch(torch.nn.Module):
     """
@@ -53,6 +31,13 @@ class DiceLossTorch(torch.nn.Module):
 def precision(real, prediction):
     """
     Calculate the precision of a prediction.
+
+    Args:
+        real (torch.Tensor): Tensor representing the ground truth image.
+        prediction (torch.Tensor): Tensor representing the predicted image.
+
+    Returns:
+        float: Precision value.
     """
     intersection = np.sum(real*prediction)
     return intersection / np.sum(prediction)
@@ -61,6 +46,13 @@ def precision(real, prediction):
 def recall(real, prediction):
     """
     Calculate the recall of a prediction.
+
+    Args:
+        real (torch.Tensor): Tensor representing the ground truth image.
+        prediction (torch.Tensor): Tensor representing the predicted image.
+
+    Returns:
+        float: Recall value.
     """
     intersection = np.sum(real*prediction)
     return intersection / np.sum(real)
@@ -69,6 +61,13 @@ def recall(real, prediction):
 def jaccard_index(real, prediction):
     """
     Calculate the Jaccard index (IoU) of a prediction.
+
+    Args:
+        real (torch.Tensor): Tensor representing the ground truth image.
+        prediction (torch.Tensor): Tensor representing the predicted image.
+
+    Returns:
+        float: IoU value.
     """
     intersection = np.sum(real*prediction)
     union = np.sum(real) + np.sum(prediction) - intersection
@@ -77,6 +76,13 @@ def jaccard_index(real, prediction):
 def accuracy(real, prediction):
     """
     Calculate the accuracy of a prediction.
+
+    Args:
+        real (torch.Tensor): Tensor representing the ground truth image.
+        prediction (torch.Tensor): Tensor representing the predicted image.
+
+    Returns:
+        float: Accuracy value.
     """
     true_values = np.sum(real==prediction)
     false_values = np.sum(real!=prediction)
@@ -84,8 +90,15 @@ def accuracy(real, prediction):
 
 def metrics(real, prediction):
     """
-    Calculate the following metrics: accuracy, precision, jaccard index,
-    recall.
+    Calculate the following metrics: accuracy, precision, Jaccard index, and recall.
+
+    Args:
+        real (torch.Tensor): Tensor representing the ground truth image.
+        prediction (torch.Tensor): Tensor representing the predicted image.
+
+    Returns:
+        list[float]: A list containing the calculated metrics in the following order:
+                    [precision, recall, accuracy, IoU].
     """
     real = real.detach().numpy()
     prediction = np.round(prediction.detach().numpy())

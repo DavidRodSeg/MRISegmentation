@@ -83,8 +83,13 @@ class UpBlockOriginal(nn.Module):
 
 class OriginalUNet(nn.Module):
     """
-    UNet model for image segmentation according to the original article. The size
-    of the output images are smaller than the input images.
+    UNet model for image segmentation as described in the original article. 
+    The output image dimensions are smaller than the input image dimensions.
+
+    Args:
+        in_ch (int, optional): Number of input channels (default: 1).
+        out_classes (int, optional): Number of output classes. Use 1 for binary segmentation 
+            (default: 1).
     """
     def __init__(self, in_ch = 1, out_classes = 1):
         super().__init__()
@@ -202,6 +207,11 @@ class UNet(nn.Module):
     """
     UNet model for image segmentation adapted for the output to be of the
     same size as the input.
+
+    Args:
+        in_ch (int, optional): Number of input channels (default: 1).
+        out_classes (int, optional): Number of output classes. Use 1 for binary segmentation 
+            (default: 1).
     """
     def __init__(self, in_ch = 1, out_classes = 1):
         super().__init__()
@@ -330,6 +340,11 @@ class ResUNet(nn.Module):
     UNet with residual connections between convolutions of the same block. Improvement
     over deep UNet implementations as reduce the problems of vanishing and exploding
     gradients.
+
+    Args:
+        in_ch (int, optional): Number of input channels (default: 1).
+        out_classes (int, optional): Number of output classes. Use 1 for binary segmentation 
+            (default: 1).
     """
     def __init__(self, in_ch = 1, out_classes = 1):
         super().__init__()
@@ -414,6 +429,11 @@ class AGResUNet(nn.Module):
     over deep UNet implementations as reduce the problems of vanishing and exploding
     gradients with the residual connections and introduce attention mechanisms
     allowing the network to focus on relevant regions of the images.
+
+    Args:
+        in_ch (int, optional): Number of input channels (default: 1).
+        out_classes (int, optional): Number of output classes. Use 1 for binary segmentation 
+            (default: 1).
     """
     def __init__(self, in_ch = 1, out_classes = 1):
         super().__init__()

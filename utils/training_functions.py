@@ -40,7 +40,7 @@ def train_loop(train_data, model, loss_fn, optimizer, device):
         loss.backward()
         optimizer.step()
 
-        global_loss += loss.item() # REVISAR EN FUNCIÓN DE LA FUNCIÓN DE ERROR UTILIZADA
+        global_loss += loss.item()
         train_bar.set_postfix(loss=loss.item())
 
     return global_loss
@@ -146,28 +146,32 @@ def get_best_checkpoint(history, checkpoint_number=5):
 
 
 def fit(train_data, validation_data, model, loss_fn, optimizer, epochs, checkpoint_number = 5, early_stop = 5, device="cpu",
-        load_best=False): # REVISAR SI INTRODUCIR LEARNING RATE ADAPTATIVO
+        load_best=False):
     """
-    Fit the model using the chosen loss and optimizer functions. Returns the best model
+    Fit the model using the specified loss and optimizer functions. Returns the best model 
     obtained during training.
 
     Args:
-        train_data (DataLoader): Pytorch DataLoader containing the images and masks for
+        train_data (DataLoader): PyTorch DataLoader containing the images and masks for 
             training.
-        validation_data (DataLoader): Pytorch DataLoader containing the images and masks for
+        validation_data (DataLoader): PyTorch DataLoader containing the images and masks for 
             validation.
-        model (nn.Module): Pytorch model to be trained.
-        loss_fn (nn.Moduel): Pytorch loss function to be minimized during training.
-        optimizer (torch.optim.Optimizer): Pytorch optimizer to use during training.
-        epochs (int): Maximum number of epochs to consider.
-        early_stop (int): Number of epochs from the last checkpoint to wait before early 
-        stopping the training if there is no improvement in validation loss.
+        model (nn.Module): PyTorch model to be trained.
+        loss_fn (nn.Module): PyTorch loss function to be minimized during training.
+        optimizer (torch.optim.Optimizer): PyTorch optimizer to use during training.
+        epochs (int): Maximum number of epochs to train.
+        early_stop (int): Number of epochs to wait for an improvement in validation loss 
+            before stopping training early.
+        device (str, optional): The device to perform computations on (default: "cpu").
+        load_best (bool, optional): If True, the best model is loaded at the end of training 
+            (default: False).
 
     Returns:
-        history (pd.DataFrame): DataFrame containing:
-            - "train_loss" (list(float)): List of training losses per epoch.
-            - "val_loss" (list(float)): List of validation loss per epoch.
+        history (pd.DataFrame): A DataFrame containing the following columns:
+            - "train_loss" (list[float]): List of training losses per epoch.
+            - "val_loss" (list[float]): List of validation losses per epoch.
     """
+
     print("Starting the training...")
     train_loss = []
     val_loss = []
