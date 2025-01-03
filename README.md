@@ -51,8 +51,8 @@ MRI Brain Tumor Segmentation. </i>
 ### Dependencies
 
 The main libraries are:
-* Pytorch = 2.2.2
-* Numpy = 1.26.2
+* Pytorch = 2.5.1
+* Numpy = 2.2.1
 
 Additional dependencies are listed in the file  _requirement.txt_
 
