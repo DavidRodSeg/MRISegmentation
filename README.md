@@ -1,10 +1,10 @@
 # MRISegmentation
-## Objective
+## 🎯 Objective
 
 The aim of the project was to achieved binary segmentation of brain tumoral MRI (magnetic resonance imaging) images. For that purpose two models were used: pretrained DeepLabV3 and AGResUNet. Both use a _encoder-decoder_ arquitecture
 and are fully convolutional networks. The quality of the models were measured using _dice_, _precision_, _recall_, _accuracy_ and _IoU_, typically use in this kind of problems.
 
-## Data set analysis
+## 📊 Data set analysis
 
 The data set used consisted in a set of two-dimensional images of brain regions extracted through magnetic resonance imaging. We had several types of images or _sequences_ based on the parameters configured during the acquisition of these.
 
@@ -22,7 +22,7 @@ The data set used consisted in a set of two-dimensional images of brain regions 
 
 The data set is divided in training and validation sets (994 images) y testing set (257 images). The resolution is 240 x 240 pixels..
 
-## Models
+## 🧪 Models
 ### DeepLabV3
 The DeepLab models are a type of deep learning architecture dedicated to semantic image segmentation, that is, assigning a class to each pixel of an image. 
 They are characterized by the use of dilated convolutions, which allow the model to increase its field of view without increasing the number of parameters by 
@@ -47,8 +47,8 @@ The AGResUNet model adds two additional elements to the structure:
 MRI Brain Tumor Segmentation. </i>
 </center>
 
-## How to use it
-### Dependencies
+## 🛠️ How to use it
+### 📦 Dependencies
 
 The main libraries are:
 * Pytorch = 2.5.1
@@ -56,10 +56,10 @@ The main libraries are:
 
 Additional dependencies are listed in the file  _requirement.txt_
 
-### Training
+### 🏋️ Training
 Run _training.py_ to start training the models and visualizing the results.
 
-### Results
+### 📈 Results
 For 20 epochs the metrics obtained for both models are the following:
 
 | Models      | Accuracy | Precision | Recall | Dice  | IoU   |
@@ -74,7 +74,7 @@ The results are specially satisfactory with AGResUNet. This is also shown in the
 </center>
 
 
-## References
+## 📚 References
 
 <div id="refs" class="references csl-bib-body hanging-indent">
 
