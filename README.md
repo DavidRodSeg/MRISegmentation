@@ -1,4 +1,5 @@
 # MRISegmentation
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DavidRodSeg/MRISegmentation/blob/main/MRISegmentation_EnglishVersion.ipynb)
 ## 🎯 Objective
 
 The aim of the project was to achieved binary segmentation of brain tumoral MRI (magnetic resonance imaging) images. For that purpose two models were used: pretrained DeepLabV3 and AGResUNet. Both use a _encoder-decoder_ arquitecture
